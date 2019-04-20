@@ -1,9 +1,10 @@
 package graphics;
 
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -34,6 +35,7 @@ public class MainWindow extends Application {
 	static ArrayList<Point> tested;
 	static boolean alreadyCheck[][];
 	boolean finish = false;
+	Timer timer;
 
 	public static void main(String[] args) {
 		size = 40;
@@ -46,9 +48,18 @@ public class MainWindow extends Application {
 
 	@Override
 	public void start(Stage s) throws Exception {
+		HBox up = new HBox();
 		VBox root = new VBox();
 		Canvas canvas = new Canvas(taille_case * size, taille_case * size);
 		gc = canvas.getGraphicsContext2D();
+		gc.setFill(Color.WHITE);
+		gc.setStroke(Color.BLACK);
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				gc.fillRect(i * taille_case, j * taille_case, taille_case, taille_case);
+				gc.strokeRect(i * taille_case, j * taille_case, taille_case, taille_case);
+			}
+		}
 		canvas.setOnMouseClicked(new EventHandler<MouseEvent>() {
 
 			@Override
@@ -67,30 +78,44 @@ public class MainWindow extends Application {
 					if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
 							&& !murs.contains(p.getPoint(x, y))) {
 						murs.add(p.getPoint(x, y));
-						System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
-					} else
-						System.err.println("Impossible d'ajouter ce mur !");
+						gc.setFill(Color.BLACK);
+						gc.fillRect(x * taille_case, y * taille_case, taille_case, taille_case);
+						//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
+					}
 				}
 				repaint();
 			}
 
 		});
 		repaint();
-		root.getChildren().add(canvas);
-		root.setOnMouseDragged(new EventHandler<MouseEvent>() {
+		canvas.setOnMouseDragged(new EventHandler<MouseEvent>() {
 
 			@Override
 			public void handle(MouseEvent event) {
 				int x = (int) (event.getX() / taille_case), y = (int) (event.getY() / taille_case);
 				if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
-						&& !murs.contains(p.getPoint(x, y))) {
+						&& !murs.contains(p.getPoint(x, y)) && !setStart && !setEnd) {
 					murs.add(p.getPoint(x, y));
+					gc.setFill(Color.BLACK);
+					gc.fillRect(x * taille_case, y * taille_case, taille_case, taille_case);
 					//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
 				}
 			}
 
 		});
-		addMouseScrolling(root);
+		canvas.setOnMouseReleased(new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent event) {
+				gc.setFill(Color.BLACK);
+				for (int i = 0; i < murs.size(); i++) {
+					gc.fillRect(murs.get(i).getX() * taille_case, murs.get(i).getY() * taille_case, taille_case, taille_case);
+				}
+			}
+			
+		});
+		addMouseScrolling(up);
+		up.getChildren().add(canvas);
 
 		HBox bottom = new HBox();
 		Button start_point = new Button("Start point");
@@ -103,8 +128,17 @@ public class MainWindow extends Application {
 			public void handle(ActionEvent event) {
 				if (p.getStart() != null && p.getEnd() != null) {
 					current = p.getStart();
-					while (!doNext()) {}
-					repaint();
+					timer = new Timer();
+					timer.schedule(
+						    new TimerTask() {
+
+						        @Override
+						        public void run() {
+						        	doNext();
+						        	repaint();
+						        }
+						    }, 0, 20);
+					
 				} else
 					System.err.println("Start or end isn't define !");
 			}
@@ -143,12 +177,19 @@ public class MainWindow extends Application {
 				road = new ArrayList<Point>();
 				tested = new ArrayList<Point>();
 				finish = false;
-				repaint();
+				gc.setFill(Color.WHITE);
+				gc.setStroke(Color.BLACK);
+				for (int i = 0; i < size; i++) {
+					for (int j = 0; j < size; j++) {
+						gc.fillRect(i * taille_case, j * taille_case, taille_case, taille_case);
+						gc.strokeRect(i * taille_case, j * taille_case, taille_case, taille_case);
+					}
+				}
 			}
 		});
 
 		bottom.getChildren().addAll(start_point, end_point, search, next, clear);
-		root.getChildren().add(bottom);
+		root.getChildren().addAll(up, bottom);
 
 		Scene scene = new Scene(root);
 		s.setTitle("A* pathfinder");
@@ -157,20 +198,6 @@ public class MainWindow extends Application {
 	}
 
 	private void repaint() {
-		gc.setFill(Color.WHITE);
-		gc.setStroke(Color.BLACK);
-		for (int i = 0; i < size; i++) {
-			for (int j = 0; j < size; j++) {
-				gc.fillRect(i * taille_case, j * taille_case, taille_case, taille_case);
-				gc.strokeRect(i * taille_case, j * taille_case, taille_case, taille_case);
-			}
-		}
-		
-		gc.setFill(Color.BLACK);
-		for (int i = 0; i < murs.size(); i++) {
-			gc.fillRect(murs.get(i).getX() * taille_case, murs.get(i).getY() * taille_case, taille_case, taille_case);
-		}
-		
 		gc.setFill(Color.GREEN);
 		if (p.getEnd() != null)
 			gc.fillRect(p.getEnd().getX() * taille_case, p.getEnd().getY() * taille_case, taille_case, taille_case);
@@ -180,12 +207,12 @@ public class MainWindow extends Application {
 			if(road.get(i) != null) gc.fillRect(road.get(i).getX() * taille_case, road.get(i).getY() * taille_case, taille_case, taille_case);
 		}
 		
-		gc.setStroke(Color.BLACK);
+		/*gc.setStroke(Color.BLACK);
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < size; j++) {
 				afficheStats(p.getPoint(i, j));
 			}
-		}
+		}*/
 		
 		if(current != null) {
 			//gc.setFill(Color.rgb((int)(Math.random() * 256), (int)(Math.random() * 256), (int)(Math.random() * 256)));
@@ -193,7 +220,7 @@ public class MainWindow extends Application {
 			Point temp = current;
 			while(temp.getPrecedent() != null) {
 				gc.fillRect(temp.getX() * taille_case, temp.getY() * taille_case, taille_case, taille_case);
-				afficheStats(temp);
+				//afficheStats(temp);
 				temp = temp.getPrecedent();
 			}
 		}
@@ -252,7 +279,7 @@ public class MainWindow extends Application {
 								temp.setHCost(toEnd);
 								temp.setFCost(fromStart + toEnd);
 								tested.add(temp);
-								System.out.println("Point ajouté");
+								//System.out.println("Point ajouté");
 							} else {
 								int fromStart, toEnd;
 								fromStart = temp.getDistance(current) + current.getGCost();
@@ -262,7 +289,7 @@ public class MainWindow extends Application {
 									temp.setHCost(toEnd);
 									temp.setFCost(fromStart + toEnd);
 									temp.setPrecedent(current);
-									System.out.println("Point MODIFIE!");
+									//System.out.println("Point MODIFIE!");
 								}
 							}
 						}
@@ -275,11 +302,13 @@ public class MainWindow extends Application {
 		if(current == null) {
 			System.out.println("Aucun passage possible");
 			finish = true;
+			timer.cancel();
 			return true;
 		}
 		if (current.getHCost() == 0) {
 			finish = true;
 			System.out.println("Terminé");
+			timer.cancel();
 			return true;
 		}
 		return false;
