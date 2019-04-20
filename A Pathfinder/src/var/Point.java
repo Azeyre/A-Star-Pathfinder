@@ -6,6 +6,7 @@ public class Point {
 	private int GCost;
 	private int HCost;
 	private int FCost;
+	private Point precedent;
 	
 	public Point(int x, int y) {
 		this.x = x;
@@ -49,5 +50,13 @@ public class Point {
 	}
 	public String toString() {
 		return "X : "+x+" ; Y : " + y + " , " + GCost + " , " + HCost + " , " + FCost;
+	}
+
+	public Point getPrecedent() {
+		return precedent;
+	}
+
+	public void setPrecedent(Point precedent) {
+		this.precedent = precedent;
 	}
 }
