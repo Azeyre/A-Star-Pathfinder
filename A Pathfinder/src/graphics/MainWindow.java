@@ -16,13 +16,14 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import var.Plateau;
 import var.Point;
 
 public class MainWindow extends Application {
 
-	private int taille_case = 40;
+	private int taille_case = 20;
 	static int size;
 	ArrayList<Point> murs = new ArrayList<Point>();
 	GraphicsContext gc;
@@ -35,7 +36,7 @@ public class MainWindow extends Application {
 	boolean finish = false;
 
 	public static void main(String[] args) {
-		size = 20;
+		size = 40;
 		alreadyCheck = new boolean[size][size];
 		road = new ArrayList<Point>();
 		tested = new ArrayList<Point>();
@@ -84,7 +85,7 @@ public class MainWindow extends Application {
 				if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
 						&& !murs.contains(p.getPoint(x, y))) {
 					murs.add(p.getPoint(x, y));
-					System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
+					//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
 				}
 			}
 
@@ -103,6 +104,7 @@ public class MainWindow extends Application {
 				if (p.getStart() != null && p.getEnd() != null) {
 					current = p.getStart();
 					while (!doNext()) {}
+					repaint();
 				} else
 					System.err.println("Start or end isn't define !");
 			}
@@ -126,6 +128,7 @@ public class MainWindow extends Application {
 					System.out.println("Trouvé");
 				else if (p.getStart() != null && p.getEnd() != null) {
 					doNext();
+					repaint();
 				} else
 					System.err.println("Start or end isn't define !");
 			}
@@ -134,7 +137,6 @@ public class MainWindow extends Application {
 			@Override
 			public void handle(ActionEvent event) {
 				murs = new ArrayList<Point>();
-				boolean setStart, setEnd;
 				current = null;
 				p.clear();
 				alreadyCheck = new boolean[size][size];
@@ -169,17 +171,13 @@ public class MainWindow extends Application {
 			gc.fillRect(murs.get(i).getX() * taille_case, murs.get(i).getY() * taille_case, taille_case, taille_case);
 		}
 		
-		gc.setFill(Color.RED);
-		if (p.getStart() != null)
-			gc.fillRect(p.getStart().getX() * taille_case, p.getStart().getY() * taille_case, taille_case, taille_case);
-		
 		gc.setFill(Color.GREEN);
 		if (p.getEnd() != null)
 			gc.fillRect(p.getEnd().getX() * taille_case, p.getEnd().getY() * taille_case, taille_case, taille_case);
 		
 		gc.setFill(Color.BLUE);
 		for (int i = 0; i < road.size(); i++) {
-			gc.fillRect(road.get(i).getX() * taille_case, road.get(i).getY() * taille_case, taille_case, taille_case);
+			if(road.get(i) != null) gc.fillRect(road.get(i).getX() * taille_case, road.get(i).getY() * taille_case, taille_case, taille_case);
 		}
 		
 		gc.setStroke(Color.BLACK);
@@ -199,6 +197,10 @@ public class MainWindow extends Application {
 				temp = temp.getPrecedent();
 			}
 		}
+		
+		gc.setFill(Color.RED);
+		if (p.getStart() != null)
+			gc.fillRect(p.getStart().getX() * taille_case, p.getStart().getY() * taille_case, taille_case, taille_case);
 	}
 
 	public void addMouseScrolling(Node node) {
@@ -215,6 +217,7 @@ public class MainWindow extends Application {
 	}
 
 	private void afficheStats(Point p) {
+		gc.setFont(new Font("Arial", taille_case * 0.35));
 		String s;
 		if(p.getGCost() != 0) {
 			s = String.valueOf(p.getGCost());
@@ -223,7 +226,7 @@ public class MainWindow extends Application {
 
 		if(p.getHCost() != 0) {
 			s = String.valueOf(p.getHCost());
-			gc.strokeText(s, p.getX() * taille_case + 25, p.getY() * taille_case + 10);
+			gc.strokeText(s, p.getX() * taille_case + (taille_case * 0.5), p.getY() * taille_case + (taille_case * 0.2));
 		}
 		
 		if(p.getFCost() != 0) {
@@ -251,7 +254,6 @@ public class MainWindow extends Application {
 								tested.add(temp);
 								System.out.println("Point ajouté");
 							} else {
-								Point p2 = temp;
 								int fromStart, toEnd;
 								fromStart = temp.getDistance(current) + current.getGCost();
 								toEnd = temp.getDistance(p.getEnd());
@@ -259,6 +261,7 @@ public class MainWindow extends Application {
 									temp.setGCost(fromStart);
 									temp.setHCost(toEnd);
 									temp.setFCost(fromStart + toEnd);
+									temp.setPrecedent(current);
 									System.out.println("Point MODIFIE!");
 								}
 							}
@@ -277,10 +280,8 @@ public class MainWindow extends Application {
 		if (current.getHCost() == 0) {
 			finish = true;
 			System.out.println("Terminé");
-			repaint();
 			return true;
 		}
-		repaint();
 		return false;
 	}
 
