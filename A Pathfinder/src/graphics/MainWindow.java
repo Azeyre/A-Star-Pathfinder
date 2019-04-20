@@ -24,7 +24,7 @@ import var.Point;
 
 public class MainWindow extends Application {
 
-	private int taille_case = 20;
+	private double taille_case = 40;
 	static int size;
 	ArrayList<Point> murs = new ArrayList<Point>();
 	GraphicsContext gc;
@@ -38,7 +38,7 @@ public class MainWindow extends Application {
 	Timer timer;
 
 	public static void main(String[] args) {
-		size = 40;
+		size = 20;
 		alreadyCheck = new boolean[size][size];
 		road = new ArrayList<Point>();
 		tested = new ArrayList<Point>();
@@ -114,7 +114,7 @@ public class MainWindow extends Application {
 			}
 			
 		});
-		addMouseScrolling(up);
+		addMouseScrolling(canvas);
 		up.getChildren().add(canvas);
 
 		HBox bottom = new HBox();
@@ -137,7 +137,7 @@ public class MainWindow extends Application {
 						        	doNext();
 						        	repaint();
 						        }
-						    }, 0, 20);
+						    }, 0, 15);
 					
 				} else
 					System.err.println("Start or end isn't define !");
@@ -202,11 +202,6 @@ public class MainWindow extends Application {
 		if (p.getEnd() != null)
 			gc.fillRect(p.getEnd().getX() * taille_case, p.getEnd().getY() * taille_case, taille_case, taille_case);
 		
-		gc.setFill(Color.BLUE);
-		for (int i = 0; i < road.size(); i++) {
-			if(road.get(i) != null) gc.fillRect(road.get(i).getX() * taille_case, road.get(i).getY() * taille_case, taille_case, taille_case);
-		}
-		
 		/*gc.setStroke(Color.BLACK);
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < size; j++) {
@@ -233,13 +228,30 @@ public class MainWindow extends Application {
 	public void addMouseScrolling(Node node) {
 		node.setOnScroll((ScrollEvent event) -> {
 			// Adjust the zoom factor as per your requirement
-			double zoomFactor = 1.05;
 			double deltaY = event.getDeltaY();
-			if (deltaY < 0) {
-				zoomFactor = 2.0 - zoomFactor;
+			if(deltaY < 0) {
+				size += 4;
+				taille_case = 800 / size;
+				p = new Plateau(size);
+				murs = new ArrayList<Point>();
+				current = null;
+				p.clear();
+				alreadyCheck = new boolean[size][size];
+				road = new ArrayList<Point>();
+				tested = new ArrayList<Point>();
+				finish = false;
+				gc.setFill(Color.WHITE);
+				gc.setStroke(Color.BLACK);
+				for (int i = 0; i < size; i++) {
+					for (int j = 0; j < size; j++) {
+						gc.fillRect(i * taille_case, j * taille_case, taille_case, taille_case);
+						gc.strokeRect(i * taille_case, j * taille_case, taille_case, taille_case);
+					}
+				}
 			}
-			node.setScaleX(node.getScaleX() * zoomFactor);
-			node.setScaleY(node.getScaleY() * zoomFactor);
+			else {
+				System.out.println("Zoom");
+			}
 		});
 	}
 
@@ -295,6 +307,16 @@ public class MainWindow extends Application {
 						}
 					}
 				}
+			}
+		}
+		if(current != null) {
+			//gc.setFill(Color.rgb((int)(Math.random() * 256), (int)(Math.random() * 256), (int)(Math.random() * 256)));
+			gc.setFill(Color.BLUE);
+			Point temp1 = current;
+			while(temp1.getPrecedent() != null) {
+				gc.fillRect(temp1.getX() * taille_case, temp1.getY() * taille_case, taille_case, taille_case);
+				//afficheStats(temp);
+				temp1 = temp1.getPrecedent();
 			}
 		}
 		current = getBest();
