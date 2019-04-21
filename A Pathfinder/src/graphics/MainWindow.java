@@ -1,5 +1,10 @@
 package graphics;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -18,6 +23,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import var.Plateau;
 import var.Point;
@@ -75,12 +81,18 @@ public class MainWindow extends Application {
 					p.setEnd(x, y);
 					setEnd = false;
 				} else {
-					if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
-							&& !murs.contains(p.getPoint(x, y))) {
-						murs.add(p.getPoint(x, y));
-						gc.setFill(Color.BLACK);
-						gc.fillRect(x * taille_case, y * taille_case, taille_case, taille_case);
-						//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
+					if(event.getButton().ordinal() == 1) {
+						if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
+								&& !murs.contains(p.getPoint(x, y))) {
+							murs.add(p.getPoint(x, y));
+							gc.setFill(Color.BLACK);
+							gc.fillRect(x * taille_case, y * taille_case, taille_case, taille_case);
+							//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
+						}
+					} else {
+						murs.remove(p.getPoint(x, y));
+						gc.setFill(Color.WHITE);
+						gc.fillRect(x * taille_case + 1, y * taille_case + 1, taille_case - 2, taille_case - 2);
 					}
 				}
 				repaint();
@@ -93,12 +105,18 @@ public class MainWindow extends Application {
 			@Override
 			public void handle(MouseEvent event) {
 				int x = (int) (event.getX() / taille_case), y = (int) (event.getY() / taille_case);
-				if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
-						&& !murs.contains(p.getPoint(x, y)) && !setStart && !setEnd) {
-					murs.add(p.getPoint(x, y));
-					gc.setFill(Color.BLACK);
-					gc.fillRect(x * taille_case, y * taille_case, taille_case, taille_case);
-					//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
+				if(event.getButton().ordinal() == 1) {
+					if (p.getPoint(x, y) != p.getStart() && p.getPoint(x, y) != p.getEnd()
+							&& !murs.contains(p.getPoint(x, y))) {
+						murs.add(p.getPoint(x, y));
+						gc.setFill(Color.BLACK);
+						gc.fillRect(x * taille_case, y * taille_case, taille_case, taille_case);
+						//System.out.println("Ajout d'un mur en [" + x + ";" + y + "]");
+					}
+				} else {
+					murs.remove(p.getPoint(x, y));
+					gc.setFill(Color.WHITE);
+					gc.fillRect(x * taille_case + 1, y * taille_case + 1, taille_case - 2, taille_case - 2);
 				}
 			}
 
@@ -123,6 +141,8 @@ public class MainWindow extends Application {
 		Button search = new Button("Search Path");
 		Button next = new Button("Next");
 		Button clear = new Button("Clear");
+		Button save = new Button("Save as");
+		Button open = new Button("Open");
 		search.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
@@ -187,8 +207,113 @@ public class MainWindow extends Application {
 				}
 			}
 		});
+		save.setOnAction(new EventHandler<ActionEvent>() {
 
-		bottom.getChildren().addAll(start_point, end_point, search, next, clear);
+			@Override
+			public void handle(ActionEvent event) {				
+				FileChooser fileChooser = new FileChooser();
+				 
+	            //Set extension filter for text files
+	            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+	            fileChooser.getExtensionFilters().add(extFilter);
+	 
+	            //Show save file dialog
+	            File file = fileChooser.showSaveDialog(s);
+	 
+	            String s = "";
+	            s+= "p:" + size + "\n";
+	            if(p.getStart() != null) s+= "s:" + p.getStart().getX() + ";" + p.getStart().getY() + "\n";
+	            if(p.getEnd() != null) s+= "e:" + p.getEnd().getX() + ";" + p.getEnd().getY() + "\n";
+	            for(int i = 0 ; i < murs.size() ; i++) {
+	            	s += "m:" + murs.get(i).getX() + ";" + murs.get(i).getY() + "\n";
+	            }
+	            if (file != null) {
+	                saveTextToFile(s, file);
+	            }
+			}
+			
+		});
+		open.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				FileChooser fileChooser = new FileChooser();
+				 
+	            //Set extension filter for text files
+	            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+	            fileChooser.getExtensionFilters().add(extFilter);
+	            
+	            File file = fileChooser.showOpenDialog(s);
+	            
+	            if (file != null) {
+	            	BufferedReader reader;
+	            	boolean error = false;
+	            	String s, xStart = "", yStart = "", xEnd ="", yEnd="", xMur="", yMur="";
+	            	ArrayList<Point> temp = new ArrayList<Point>();
+	            	try {
+	            		reader = new BufferedReader(new FileReader(file));
+	            		String line = reader.readLine();
+	            		while(line != null && !error) {
+	            			if(line.length() > 0) {
+	            				if(line.charAt(0) == 'p') {
+		            				size = Integer.valueOf(line.substring(2, line.length()));
+		            			} else if(line.charAt(0) == 's') {
+		            				s = line.substring(2, line.length());
+		            				xStart = s.split(";")[0];
+		            				yStart = s.split(";")[1];
+		            			} else if(line.charAt(0) == 'e') {
+		            				s = line.substring(2, line.length());
+		            				xEnd = s.split(";")[0];
+		            				yEnd = s.split(";")[1];
+		            			} else if(line.charAt(0) == 'm') {
+		            				s = line.substring(2, line.length());
+		            				xMur = s.split(";")[0];
+		            				yMur = s.split(";")[1];
+		            				temp.add(new Point(Integer.valueOf(xMur), Integer.valueOf(yMur)));
+		            			} else error = true;
+	            			}
+	            			line = reader.readLine();
+	            		}
+	            		reader.close();
+	            		if(error) {
+	            			System.err.println("Le fichier contient de faux paramètres.");
+	            		} else {
+	            			taille_case = 800 / size;
+	        				p = new Plateau(size);
+	        				murs = new ArrayList<Point>();
+	        				current = null;
+	        				p.clear();
+	        				if(xStart != "" && yStart != "")p.setStart(Integer.valueOf(xStart), Integer.valueOf(yStart));
+	        				if(xEnd != "" && yEnd != "") p.setEnd(Integer.valueOf(xEnd), Integer.valueOf(yEnd));
+	        				alreadyCheck = new boolean[size][size];
+	        				road = new ArrayList<Point>();
+	        				tested = new ArrayList<Point>();
+	        				finish = false;
+	        				gc.setFill(Color.WHITE);
+	        				gc.setStroke(Color.BLACK);
+	        				for (int i = 0; i < size; i++) {
+	        					for (int j = 0; j < size; j++) {
+	        						gc.fillRect(i * taille_case, j * taille_case, taille_case, taille_case);
+	        						gc.strokeRect(i * taille_case, j * taille_case, taille_case, taille_case);
+	        					}
+	        				}
+	        				for(int i = 0 ; i < temp.size() ; i++) {
+	        					murs.add(p.getPoint(temp.get(i).getX(), temp.get(i).getY()));
+	    						gc.setFill(Color.BLACK);
+	    						gc.fillRect(temp.get(i).getX() * taille_case, temp.get(i).getY() * taille_case, taille_case, taille_case);
+	        				}
+	        				repaint();
+	            			System.out.println("Les paramètres ont été chargé.");
+	            		}
+	            	} catch(IOException e) {
+	            		e.printStackTrace();
+	            		System.out.println("Le fichier n'a pas pu être ouvert.");
+	            	}
+	            }
+			}
+			
+		});
+		bottom.getChildren().addAll(start_point, end_point, search, next, clear, save, open);
 		root.getChildren().addAll(up, bottom);
 
 		Scene scene = new Scene(root);
@@ -350,4 +475,15 @@ public class MainWindow extends Application {
 		}
 		return temp;
 	}
+	
+	private void saveTextToFile(String content, File file) {
+        try {
+            PrintWriter writer;
+            writer = new PrintWriter(file);
+            writer.println(content);
+            writer.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
 }
